@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f9f7fa">
+<title>Chrysalism · Phone Shell</title>
+<style>
+:root{--bg:#f9f7fa;--ink:#252b38;--muted:#898b95;--line:#e7e3e7;--panel:rgba(255,255,255,.62);--accent:#c1a0ac;--accent2:#d3dff2;--shadow:0 12px 36px rgba(36,32,45,.12)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",sans-serif;background:#e9e7eb;color:var(--ink)}
+button{font:inherit;cursor:pointer}
+#app{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 20% 15%,#f8e7ed 0,transparent 34%),radial-gradient(ellipse at 80% 85%,#dbe5f3 0,transparent 34%),#e9e7eb}
+.device{position:relative;width:min(390px,100%);height:min(844px,calc(100dvh - 32px));min-height:640px;border:7px solid #17171b;border-radius:48px;overflow:hidden;background:var(--bg);box-shadow:0 28px 80px rgba(20,20,30,.25);isolation:isolate}
+.wallpaper{position:absolute;inset:0;z-index:-2;background:radial-gradient(circle at 18% 24%,rgba(240,217,228,.92),transparent 35%),radial-gradient(circle at 85% 66%,rgba(211,223,242,.9),transparent 38%),linear-gradient(145deg,#f9f7fa,#f0e9ef 52%,#dce5f1)}
+.wallpaper:before,.wallpaper:after{content:"";position:absolute;border-radius:50%;filter:blur(2px);opacity:.55}
+.wallpaper:before{width:280px;height:280px;right:-115px;top:110px;background:#f0d9e4}
+.wallpaper:after{width:300px;height:300px;left:-130px;bottom:85px;background:#b0afb1}
+.statusbar{height:46px;padding:15px 25px 0;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;letter-spacing:.01em;position:relative;z-index:3}
+.status-right{display:flex;gap:7px;align-items:center;font-size:12px}
+.signal{letter-spacing:-3px;font-size:17px}
+.island{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:27px;background:#111;border-radius:18px;z-index:4}
+.screen{position:absolute;inset:0;display:none;overflow:auto;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen.active{display:block}
+.lock-screen{display:flex;flex-direction:column;align-items:center;text-align:center;padding:78px 24px 24px;color:#282a35}
+.lock-date{font-size:14px;font-weight:600;letter-spacing:.04em}
+.lock-time{font-size:76px;line-height:1.05;font-weight:250;letter-spacing:-.07em;margin-top:8px}
+.lock-note{margin-top:15px;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:#565967}
+.lock-bottom{margin-top:auto;width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 8px 18px}
+.round-control{width:46px;height:46px;border:1px solid rgba(255,255,255,.5);border-radius:50%;background:rgba(255,255,255,.38);backdrop-filter:blur(16px);display:grid;place-items:center;font-size:20px}
+.swipe-hint{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.18em;white-space:nowrap;color:#64616c;animation:hint 2s infinite}
+.home{padding:0 19px 32px}
+.widget-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:28px}
+.widget{border:1px solid rgba(255,255,255,.55);border-radius:21px;background:rgba(255,255,255,.42);backdrop-filter:blur(20px);padding:15px;min-height:130px;box-shadow:0 7px 20px rgba(47,43,55,.05)}
+.widget-label{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#656979}
+.weather-place{font-size:12px;margin-top:10px}
+.temp{font-size:30px;letter-spacing:-.06em;font-weight:500;margin-top:1px}
+.weather-desc{font-size:11px;color:#656979;margin-top:1px}
+.highlow{font-size:10px;color:#777986;margin-top:7px}
+.event{display:flex;gap:9px;margin-top:12px;font-size:11px;line-height:1.4}
+.event-time{font-variant-numeric:tabular-nums;color:#687b98;min-width:35px}
+.event-title{font-weight:600}
+.dayline{margin-top:25px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#656979;display:flex;justify-content:space-between}
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px 10px;margin-top:20px}
+.app-icon{display:flex;flex-direction:column;align-items:center;gap:7px;border:0;background:transparent;color:#343440;padding:0;min-width:0}
+.icon-tile{width:53px;height:53px;border-radius:16px;display:grid;place-items:center;font-size:25px;box-shadow:0 5px 13px rgba(39,36,45,.12);border:1px solid rgba(255,255,255,.5);position:relative;overflow:hidden}
+.icon-tile:after{content:"";position:absolute;inset:0;background:linear-gradient(140deg,rgba(255,255,255,.32),transparent 55%);pointer-events:none}
+.app-name{font-size:10px;text-shadow:0 1px 4px rgba(255,255,255,.65);white-space:nowrap}
+.dock{position:absolute;left:15px;right:15px;bottom:28px;height:82px;border:1px solid rgba(255,255,255,.58);border-radius:27px;background:rgba(255,255,255,.42);backdrop-filter:blur(25px);display:flex;align-items:center;justify-content:space-evenly;padding:9px 10px;box-shadow:var(--shadow)}
+.dock .icon-tile{width:48px;height:48px;border-radius:15px}
+.home-indicator{position:absolute;z-index:20;bottom:7px;left:50%;transform:translateX(-50%);height:5px;width:108px;border-radius:9px;background:#17171b;cursor:pointer}
+.app-screen{background:var(--bg);padding:0 20px 34px}
+.app-head{display:flex;align-items:center;justify-content:space-between;padding:18px 0 16px;border-bottom:1px solid var(--line)}
+.back-btn{border:0;background:transparent;color:var(--ink);font-size:22px;padding:0 8px 0 0}
+.app-head-title{font-weight:700;font-size:15px;letter-spacing:.02em}
+.app-head-sub{font-size:10px;color:var(--muted);letter-spacing:.14em;margin-top:3px}
+.app-body{padding-top:20px}
+.profile-card{padding:22px;border-radius:23px;background:var(--panel);border:1px solid rgba(255,255,255,.7);box-shadow:var(--shadow)}
+.profile-mark{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#f0d9e4,#d3dff2);font:italic 24px Georgia;color:#41414b;margin-bottom:17px}
+.profile-name{font-size:24px;font-weight:750;letter-spacing:-.04em}
+.profile-handle{font-size:12px;color:var(--muted);margin-top:4px}
+.profile-desc{font-size:12px;color:#777986;line-height:1.7;margin-top:13px}
+.info-row{display:flex;justify-content:space-between;gap:10px;padding:15px 0;border-bottom:1px solid var(--line);font-size:12px}
+.info-row span:last-child{color:var(--muted);text-align:right}
+.placeholder-title{font:italic 27px Georgia,serif;margin:0 0 8px}
+.placeholder-copy{font-size:12px;line-height:1.8;color:var(--muted)}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:18px}
+.photo{aspect-ratio:1;background:linear-gradient(135deg,#f0d9e4,#f9f7fa,#93a4c1);border-radius:9px;display:grid;place-items:center;font-size:23px}
+.bottom-label{position:absolute;bottom:20px;left:0;right:0;text-align:center;font-size:10px;letter-spacing:.18em;color:var(--muted)}
+.toast{position:absolute;z-index:30;left:50%;bottom:95px;transform:translateX(-50%);background:rgba(32,32,40,.84);color:white;padding:10px 15px;border-radius:30px;font-size:11px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@keyframes hint{0%,100%{opacity:.55;transform:translate(-50%,0)}50%{opacity:1;transform:translate(-50%,-4px)}}
+@media(max-width:430px){#app{padding:0;background:var(--bg)}.device{width:100%;height:100dvh;min-height:600px;border:0;border-radius:0;box-shadow:none}.island{top:9px}.statusbar{padding-top:15px}}
+@media(max-height:700px){.device{min-height:0}.widget{min-height:112px;padding:12px}.widget-row{margin-top:16px}.app-grid{gap:14px 10px;margin-top:16px}.icon-tile{width:47px;height:47px}.dock{height:70px;bottom:22px}}
+.photo-setup{position:absolute;z-index:15;left:12px;right:12px;top:54px;max-height:calc(100% - 120px);overflow:auto;padding:17px;border:1px solid rgba(255,255,255,.72);border-radius:24px;background:rgba(250,249,250,.88);backdrop-filter:blur(24px);box-shadow:0 18px 50px rgba(25,22,34,.22);display:none;color:#252b38}
+.photo-setup.open{display:block}
+.setup-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.setup-title{font:italic 25px Georgia,serif;letter-spacing:-.04em}
+.setup-sub{font-size:11px;line-height:1.65;color:#777986;margin-bottom:15px}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.upload-card{border:1px solid #dedbe1;border-radius:15px;padding:10px;background:rgba(255,255,255,.65);min-width:0}
+.upload-preview{height:95px;border-radius:10px;background:linear-gradient(135deg,#f0d9e4,#d3dff2,#b0afb1);display:grid;place-items:center;overflow:hidden;font-size:24px;color:#4a4b56;margin-bottom:8px}
+.upload-preview img{width:100%;height:100%;object-fit:cover}
+.upload-name{font-size:12px;font-weight:700;margin-bottom:7px}
+.upload-btn{display:block;width:100%;text-align:center;border:1px solid #c9c7cf;border-radius:9px;padding:8px 5px;font-size:11px;background:#fff;color:#333}
+.upload-btn input{display:none}
+.setup-actions{display:flex;gap:8px;margin-top:13px}
+.setup-actions button{flex:1;border:0;border-radius:12px;padding:11px;font-size:12px}
+.setup-save{background:#d3dff2;color:#25334b}
+.setup-close{background:#eae7eb;color:#444}
+.photo-entry{position:absolute;z-index:9;top:49px;right:15px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.45);backdrop-filter:blur(16px);border-radius:20px;padding:7px 10px;font-size:10px;color:#3c3c47;letter-spacing:.04em}
+.profile-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.8)}
+@media(max-width:430px){.photo-setup{top:58px;max-height:calc(100% - 130px)}}
+</style>
+</head>
+<body>
+<div id="app">
+ <div class="device" id="device">
+  <div class="wallpaper"></div>
+  <div class="island"></div>
+  <button class="photo-entry" id="photoEntry" type="button">＋ ADD PHOTOS</button>
+
+  <div class="statusbar">
+   <span id="statusTime">11:53 ☾</span>
+   <span class="status-right">
+    <span class="signal">▂▄▆</span>
+    <span>◉</span>
+    <span>▰</span>
+   </span>
+  </div>
+
+  <section class="screen active lock-screen" id="lock">
+   <div class="lock-date" id="lockDate">星期日，10月25日</div>
+   <div class="lock-time" id="lockTime">11:53</div>
+   <div class="lock-note" id="lockName">CHRYSALISM · PRIVATE DIARY</div>
+   <div class="lock-bottom">
+    <button class="round-control" aria-label="手电筒" onclick="toast('手電筒尚未啟用')">⌁</button>
+    <button class="round-control" aria-label="相机" onclick="toast('相機尚未啟用')">◎</button>
+   </div>
+   <div class="swipe-hint">SWIPE UP TO UNLOCK</div>
+  </section>
+
+  <section class="screen home" id="home">
+   <div class="widget-row">
+    <div class="widget">
+     <div class="widget-label">WEATHER · SHIMANE</div>
+     <div class="weather-place">A QUIET DAY</div>
+     <div class="temp">18°</div>
+     <div class="weather-desc">Cloudy · 微陰</div>
+     <div class="highlow">H: 21°　L: 13°</div>
+    </div>
+
+    <div class="widget">
+     <div class="widget-label">TODAY · SCHEDULE</div>
+     <div class="event">
+      <span class="event-time">10:30</span>
+      <span class="event-title">A little coffee</span>
+     </div>
+     <div class="event">
+      <span class="event-time">19:00</span>
+      <span class="event-title">Save a moment</span>
+     </div>
+    </div>
+   </div>
+
+   <div class="dayline">
+    <span id="homeDate">SUNDAY · OCT 25</span>
+    <span id="selectedLabel">CHRY SALISM</span>
+   </div>
+
+   <div class="app-grid" id="appGrid"></div>
+   <div class="dock" id="dock"></div>
+  </section>
+
+  <section class="screen app-screen" id="appPage">
+   <div class="app-head">
+    <button class="back-btn" onclick="goHome()">‹</button>
+    <div>
+     <div class="app-head-title" id="pageTitle">Profile</div>
+     <div class="app-head-sub" id="pageSub">PRIVATE SPACE</div>
+    </div>
+    <span style="font-size:18px;color:var(--muted)">···</span>
+   </div>
+
+   <div class="app-body" id="pageBody"></div>
+   <div class="bottom-label">CH R Y S A L I S M</div>
+  </section>
+
+  <div class="home-indicator" id="indicator" title="返回桌面"></div>
+
+  <section class="photo-setup" id="photoSetup" aria-label="Character photo uploads">
+   <div class="setup-top">
+    <div class="setup-title">Chrysalism.</div>
+    <button class="back-btn" id="closeSetup" aria-label="Close">×</button>
+   </div>
+
+   <div class="setup-sub">
+    Add your own images for the four storylines.
+    Images stay in this browser on this device.
+    Choose a portrait or wallpaper for each character.
+   </div>
+
+   <div class="upload-grid" id="uploadGrid"></div>
+
+   <div class="setup-actions">
+    <button class="setup-close" id="resetPhotos" type="button">Reset photos</button>
+    <button class="setup-save" id="closeSetupBottom" type="button">Done</button>
+   </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+ </div>
+</div>
+
+<script>
+const people = {
+ zeng: {
+  name: "曾莞婷",
+  roman: "ZENG WAN-TING",
+  initial: "ZG",
+  accent: "#c1a0ac",
+  soft: "#f0d9e4",
+  wall: ["#16131f", "#4a3f4b", "#c1a0ac"],
+  quote: "THE AFTERGLOW",
+  desc: "A quiet corner for a story that stays."
+ },
+ xie: {
+  name: "謝盈萱",
+  roman: "HSIEH YING-XUAN",
+  initial: "XY",
+  accent: "#93a4c1",
+  soft: "#d3dff2",
+  wall: ["#e7e8e4", "#b1b2ae", "#18202b"],
+  quote: "THE QUIET FRAME",
+  desc: "Small observations, long conversations."
+ },
+ yang: {
+  name: "楊謹華",
+  roman: "CHERYL YANG",
+  initial: "YJ",
+  accent: "#806c79",
+  soft: "#e6d9df",
+  wall: ["#f0ecdd", "#806c79", "#16131f"],
+  quote: "THE NIGHT SCENE",
+  desc: "A little city light after midnight."
+ },
+ chen: {
+  name: "陳庭妮",
+  roman: "ANNIE CHEN",
+  initial: "CT",
+  accent: "#93a4c1",
+  soft: "#d3dff2",
+  wall: ["#f0ecdd", "#d3dff2", "#495b7d"],
+  quote: "THE SOFT WEATHER",
+  desc: "An unhurried day, saved for later."
+ }
+};
+
+const apps = [
+ {id:"line",name:"LINE",icon:"✉",bg:"linear-gradient(145deg,#a8d7a4,#5aab66)",type:"social"},
+ {id:"instagram",name:"Instagram",icon:"◎",bg:"linear-gradient(135deg,#f6c6a8,#d6a4cb,#8e9ed8)",type:"social"},
+ {id:"x",name:"X",icon:"𝕏",bg:"#18181c",color:"#fff",type:"social"},
+ {id:"threads",name:"Threads",icon:"＠",bg:"#ece8e8",type:"social"},
+ {id:"spotify",name:"Spotify",icon:"≋",bg:"#1db954",type:"social"},
+ {id:"photos",name:"相簿",icon:"✿",bg:"conic-gradient(#f3b5c5,#f2d5a7,#a9d9c8,#a8c8f0,#d8b8e8,#f3b5c5)",type:"utility"},
+ {id:"notes",name:"備忘錄",icon:"▤",bg:"linear-gradient(#fff3bd 0 25%,#fff 25%)",type:"utility"},
+ {id:"calendar",name:"行事曆",icon:"25",bg:"linear-gradient(#fff 0 30%,#d85b67 30%)",type:"utility"},
+ {id:"maps",name:"地圖",icon:"⌖",bg:"linear-gradient(135deg,#c5e4cf,#f5edcc,#b8d4ed)",type:"utility"},
+ {id:"settings",name:"設定",icon:"⚙",bg:"linear-gradient(145deg,#d8d8dc,#9c9da5)",type:"utility"},
+ {id:"youtube",name:"YouTube",icon:"▶",bg:"#f7f7f7",color:"#e43131",type:"utility"},
+ {id:"camera",name:"相機",icon:"◉",bg:"linear-gradient(145deg,#c9c9cf,#6e707a)",type:"utility"}
+];
+
+let currentPerson = "zeng";
+let activeApp = null;
+let unlocked = false;
+
+const photoStoreKey = "chrysalism-character-photos-v1";
+let characterPhotos = {};
+
+try {
+ characterPhotos = JSON.parse(localStorage.getItem(photoStoreKey) || "{}") || {};
+} catch (e) {
+ characterPhotos = {};
+}
+function toast(message) {
+ const el = document.getElementById("toast");
+ if (!el) return;
+ el.textContent = message;
+ el.classList.add("show");
+ clearTimeout(window.toastTimer);
+ window.toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function updateClock() {
+ const now = new Date();
+ const time = now.toLocaleTimeString("zh-TW", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false
+ });
+ const date = now.toLocaleDateString("zh-TW", {
+  weekday: "long",
+  month: "long",
+  day: "numeric"
+ });
+ document.getElementById("statusTime").textContent = time;
+ document.getElementById("lockTime").textContent = time;
+ document.getElementById("lockDate").textContent = date;
+ document.getElementById("homeDate").textContent =
+  now.toLocaleDateString("en-US", {
+   weekday: "long",
+   month: "short",
+   day: "numeric"
+  }).toUpperCase();
+}
+
+function applyTheme() {
+ const p = people[currentPerson];
+ const root = document.documentElement;
+ root.style.setProperty("--accent", p.accent);
+ root.style.setProperty("--accent2", p.soft);
+ root.style.setProperty("--bg", "#f9f7fa");
+
+ const wallpaper = document.querySelector(".wallpaper");
+ wallpaper.style.background =
+  `radial-gradient(circle at 18% 24%,${p.wall[0]}88,transparent 36%),
+   radial-gradient(circle at 85% 66%,${p.wall[1]}99,transparent 40%),
+   linear-gradient(145deg,#f9f7fa,${p.soft},#e9e7eb)`;
+
+ document.getElementById("lockName").textContent =
+  p.name + " · " + p.quote;
+ document.getElementById("selectedLabel").textContent = p.roman;
+ document.getElementById("pageSub").textContent = p.roman;
+ renderApps();
+}
+
+function renderApps() {
+ const grid = document.getElementById("appGrid");
+ const dock = document.getElementById("dock");
+ grid.innerHTML = "";
+ dock.innerHTML = "";
+
+ apps.forEach((app, index) => {
+  const button = document.createElement("button");
+  button.className = "app-icon";
+  button.type = "button";
+  button.innerHTML = `
+   <span class="icon-tile" style="background:${app.bg};color:${app.color || "#343440"}">
+    ${app.icon}
+   </span>
+   <span class="app-name">${app.name}</span>
+  `;
+  button.addEventListener("click", () => openApp(app.id));
+  (index < 4 ? dock : grid).appendChild(button);
+ });
+
+ const personButton = document.createElement("button");
+ personButton.className = "app-icon";
+ personButton.type = "button";
+ personButton.innerHTML = `
+  <span class="icon-tile" style="background:linear-gradient(145deg,${people[currentPerson].soft},#fff)">
+   ♡
+  </span>
+  <span class="app-name">角色設定</span>
+ `;
+ personButton.addEventListener("click", () => openApp("characters"));
+ grid.appendChild(personButton);
+}
+
+function showScreen(id) {
+ document.querySelectorAll(".screen").forEach(screen => {
+  screen.classList.toggle("active", screen.id === id);
+ });
+}
+
+function unlock() {
+ unlocked = true;
+ showScreen("home");
+}
+
+function goHome() {
+ activeApp = null;
+ showScreen(unlocked ? "home" : "lock");
+}
+
+function switchPerson(id) {
+ if (!people[id]) return;
+ currentPerson = id;
+ applyTheme();
+ renderPhotoSetup();
+ toast("已切換至 " + people[id].name);
+}
+
+function openApp(id) {
+ activeApp = id;
+ const title = apps.find(a => a.id === id)?.name ||
+  (id === "characters" ? "角色設定" : id);
+
+ document.getElementById("pageTitle").textContent = title;
+ const body = document.getElementById("pageBody");
+ body.innerHTML = "";
+
+ if (id === "characters") {
+  body.innerHTML = `
+   <h2 class="placeholder-title">Choose your story.</h2>
+   <p class="placeholder-copy">四個不同的世界，選擇你想靠近的那一個。</p>
+   ${Object.entries(people).map(([key,p]) => `
+    <button type="button" class="character-choice"
+     data-person="${key}"
+     style="width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:14px;margin:8px 0;border:1px solid var(--line);border-radius:17px;background:var(--panel);color:var(--ink)">
+     <span style="width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:${p.soft};font:italic 18px Georgia">${p.initial}</span>
+     <span>
+      <strong>${p.name}</strong><br>
+      <small style="color:var(--muted)">${p.roman}</small>
+     </span>
+     <span style="margin-left:auto">♡</span>
+    </button>
+   `).join("")}
+  `;
+
+  body.querySelectorAll("[data-person]").forEach(button => {
+   button.addEventListener("click", () => {
+    switchPerson(button.dataset.person);
+    openApp("characters");
+   });
+  });
+
+ } else if (id === "photos") {
+  body.innerHTML = `
+   <h2 class="placeholder-title">Little memories.</h2>
+   <p class="placeholder-copy">把你喜歡的照片留在這裡。點右上角 ADD PHOTOS 可為角色設定照片。</p>
+   <div class="photo-grid">
+    ${Object.keys(people).map(key => {
+     const src = characterPhotos[key];
+     return `<div class="photo" style="overflow:hidden">
+      ${src ? `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover">` : people[key].initial}
+     </div>`;
+    }).join("")}
+   </div>
+   <button id="openPhotoSettings" style="width:100%;margin-top:18px;padding:13px;border:0;border-radius:13px;background:var(--accent2);color:#343440">
+    ＋ 設定角色照片
+   </button>
+  `;
+  document.getElementById("openPhotoSettings").addEventListener("click", openPhotoSetup);
+
+ } else if (id === "settings") {
+  body.innerHTML = `
+   <div class="profile-card">
+    <h2 class="placeholder-title">Settings.</h2>
+    <p class="placeholder-copy">你的私人小宇宙。</p>
+    <div class="info-row"><span>目前角色</span><span>${people[currentPerson].name}</span></div>
+    <div class="info-row"><span>介面版本</span><span>Chrysalism 1.0</span></div>
+    <div class="info-row"><span>照片儲存</span><span>本機瀏覽器</span></div>
+    <button id="settingsCharacters" style="width:100%;margin-top:18px;padding:12px;border:0;border-radius:12px;background:var(--accent2)">切換角色</button>
+   </div>
+  `;
+  document.getElementById("settingsCharacters").addEventListener("click", () => openApp("characters"));
+
+ } else if (id === "notes") {
+  body.innerHTML = `
+   <h2 class="placeholder-title">Dear diary.</h2>
+   <p class="placeholder-copy">寫下今天不想忘記的小事。內容會儲存在目前的瀏覽器。</p>
+   <textarea id="diaryText" placeholder="今天的心情是……" style="width:100%;min-height:200px;padding:14px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.7);font:inherit;font-size:13px;line-height:1.7;color:var(--ink)"></textarea>
+   <button id="saveDiary" style="width:100%;margin-top:10px;padding:13px;border:0;border-radius:13px;background:var(--accent2)">保存日記</button>
+  `;
+  const diary = document.getElementById("diaryText");
+  diary.value = localStorage.getItem("chrysalism-diary") || "";
+  document.getElementById("saveDiary").addEventListener("click", () => {
+   localStorage.setItem("chrysalism-diary", diary.value);
+   toast("日記已保存 ♡");
+  });
+
+ } else if (id === "calendar") {
+  body.innerHTML = `
+   <h2 class="placeholder-title">A day to remember.</h2>
+   <p class="placeholder-copy">把想一起度過的日子寫下來。</p>
+   <input id="eventInput" placeholder="例如：一起喝咖啡" style="width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;background:white">
+   <input id="eventDate" type="date" style="width:100%;margin-top:9px;padding:13px;border:1px solid var(--line);border-radius:12px;background:white">
+   <button id="saveEvent" style="width:100%;margin-top:10px;padding:13px;border:0;border-radius:13px;background:var(--accent2)">新增行程</button>
+   <div id="eventList" style="margin-top:15px"></div>
+  `;
+  renderEvents();
+
+ } else if (id === "line" || id === "instagram" || id === "threads" || id === "x") {
+  const p = people[currentPerson];
+  body.innerHTML = `
+   <div class="profile-card">
+    <div class="profile-mark">${p.initial}</div>
+    <div class="profile-name">${p.name}</div>
+    <div class="profile-handle">@${p.roman.toLowerCase().replaceAll(" ","")}</div>
+    <p class="profile-desc">${p.desc}</p>
+    <div class="info-row"><span>Story</span><span>${p.quote}</span></div>
+    <div class="info-row"><span>Private space</span><span>Only for you</span></div>
+    <p class="placeholder-copy" style="margin-top:16px">這是模擬介面，尚未連接真實社群帳號。</p>
+   </div>
+  `;
+
+ } else if (id === "spotify") {
+  body.innerHTML = `
+   <h2 class="placeholder-title">Now playing.</h2>
+   <div class="profile-card">
+    <div style="font-size:50px;text-align:center;margin:12px">♫</div>
+    <div class="profile-name" style="text-align:center">${people[currentPerson].quote}</div>
+    <p class="profile-desc" style="text-align:center">A playlist for this little universe.</p>
+    <button id="playMusic" style="width:100%;padding:13px;margin-top:15px;border:0;border-radius:13px;background:#c9e5c7">▶ 播放示意</button>
+   </div>
+  `;
+  document.getElementById("playMusic").addEventListener("click", () => toast("尚未連接音樂播放服務"));
+
+ } else if (id === "maps") {
+  body.innerHTML = `
+   <h2 class="placeholder-title">Somewhere, someday.</h2>
+   <p class="placeholder-copy">想去的城市，想一起走過的街道。</p>
+   <div class="profile-card">
+    <div class="profile-name">A little map</div>
+    <p class="profile-desc">台北 · 東京 · 大阪 · 成都</p>
+   </div>
+  `;
+
+ } else {
+  body.innerHTML = `
+   <h2 class="placeholder-title">${title}.</h2>
+   <p class="placeholder-copy">把這裡留給以後的故事。</p>
+   <div class="profile-card">
+    <div class="profile-mark">${people[currentPerson].initial}</div>
+    <div class="profile-name">${people[currentPerson].name}</div>
+    <p class="profile-desc">${people[currentPerson].desc}</p>
+   </div>
+  `;
+ }
+
+ showScreen("appPage");
+}
+
+function renderEvents() {
+ const list = document.getElementById("eventList");
+ if (!list) return;
+ let events = [];
+ try {
+  events = JSON.parse(localStorage.getItem("chrysalism-events") || "[]");
+ } catch (e) {
+  events = [];
+ }
+ list.innerHTML = events.map((event, index) => `
+  <div class="info-row">
+   <span>${event.title}</span>
+   <span>${event.date || "未設定日期"}
+    <button data-delete-event="${index}" style="border:0;background:transparent;color:#a66">×</button>
+   </span>
+  </div>
+ `).join("");
+
+ list.querySelectorAll("[data-delete-event]").forEach(button => {
+  button.addEventListener("click", () => {
+   events.splice(Number(button.dataset.deleteEvent), 1);
+   localStorage.setItem("chrysalism-events", JSON.stringify(events));
+   renderEvents();
+  });
+ });
+
+ const saveButton = document.getElementById("saveEvent");
+ if (saveButton) {
+  saveButton.onclick = () => {
+   const title = document.getElementById("eventInput").value.trim();
+   const date = document.getElementById("eventDate").value;
+   if (!title) {
+    toast("先寫下行程名稱喔");
+    return;
+   }
+   events.push({title, date});
+   localStorage.setItem("chrysalism-events", JSON.stringify(events));
+   renderEvents();
+   document.getElementById("eventInput").value = "";
+   document.getElementById("eventDate").value = "";
+   toast("行程已新增 ♡");
+  };
+ }
+}
+
+function openPhotoSetup() {
+ document.getElementById("photoSetup").classList.add("open");
+ renderPhotoSetup();
+}
+
+function closePhotoSetup() {
+ document.getElementById("photoSetup").classList.remove("open");
+}
+
+function renderPhotoSetup() {
+ const grid = document.getElementById("uploadGrid");
+ if (!grid) return;
+ grid.innerHTML = Object.entries(people).map(([key, person]) => {
+  const src = characterPhotos[key];
+  return `
+   <div class="upload-card">
+    <div class="upload-preview" id="preview-${key}">
+     ${src ? `<img src="${src}" alt="">` : person.initial}
+    </div>
+    <div class="upload-name">${person.name}</div>
+    <label class="upload-btn">
+     選擇照片
+     <input type="file" accept="image/*" data-upload-person="${key}">
+    </label>
+   </div>
+  `;
+ }).join("");
+
+ grid.querySelectorAll("[data-upload-person]").forEach(input => {
+  input.addEventListener("change", event => {
+   const file = event.target.files && event.target.files[0];
+   if (!file) return;
+   if (!file.type.startsWith("image/")) {
+    toast("請選擇圖片檔案");
+    return;
+   }
+   const reader = new FileReader();
+   reader.onload = () => {
+    characterPhotos[input.dataset.uploadPerson] = reader.result;
+    try {
+     localStorage.setItem(photoStoreKey, JSON.stringify(characterPhotos));
+     renderPhotoSetup();
+     toast("照片已保存 ♡");
+    } catch (error) {
+     toast("照片太大，請換一張較小的圖片");
+    }
+   };
+   reader.readAsDataURL(file);
+  });
+ });
+}
+
+function resetPhotos() {
+ characterPhotos = {};
+ localStorage.removeItem(photoStoreKey);
+ renderPhotoSetup();
+ toast("已重設角色照片");
+}
+
+document.getElementById("photoEntry").addEventListener("click", openPhotoSetup);
+document.getElementById("closeSetup").addEventListener("click", closePhotoSetup);
+document.getElementById("closeSetupBottom").addEventListener("click", closePhotoSetup);
+document.getElementById("resetPhotos").addEventListener("click", resetPhotos);
+
+document.getElementById("indicator").addEventListener("click", goHome);
+document.getElementById("lock").addEventListener("click", unlock);
+
+let touchStartY = 0;
+document.getElementById("lock").addEventListener("touchstart", event => {
+ touchStartY = event.touches[0].clientY;
+}, {passive:true});
+document.getElementById("lock").addEventListener("touchend", event => {
+ const endY = event.changedTouches[0].clientY;
+ if (touchStartY - endY > 35) unlock();
+}, {passive:true});
+
+document.addEventListener("keydown", event => {
+ if (event.key === "Escape") {
+  closePhotoSetup();
+  goHome();
+ }
+});
+
+updateClock();
+setInterval(updateClock, 30000);
+applyTheme();
+renderPhotoSetup();
+</script>
+</body>
+</html>
