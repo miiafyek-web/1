@@ -531,7 +531,7 @@ function renderEvents() {
    </span>
   </div>
  `).join("");
-
+#
  list.querySelectorAll("[data-delete-event]").forEach(button => {
   button.addEventListener("click", () => {
    events.splice(Number(button.dataset.deleteEvent), 1);
@@ -649,3 +649,399 @@ renderPhotoSetup();
 </script>
 </body>
 </html>
+/* ===== 自定义开屏界面：第1段 ===== */
+
+.wallpaper {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image .3s ease;
+}
+
+.wallpaper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255, 245, 250, .12),
+            rgba(255, 240, 247, .05) 45%,
+            rgba(70, 40, 65, .18)
+        );
+    pointer-events: none;
+}
+
+#lock {
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 2px 18px rgba(60, 30, 50, .22);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.lock-date {
+    margin-top: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    color: #fff;
+}
+
+.lock-time {
+    margin-top: 8px;
+    font-size: clamp(68px, 19vw, 86px);
+    line-height: 1.05;
+    font-weight: 250;
+    letter-spacing: -.065em;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+}
+
+.lock-note {
+    margin-top: 18px;
+    padding: 9px 16px;
+    border: 1px solid rgba(255, 255, 255, .38);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, .16);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: #fff;
+    font-size: 10px;
+    letter-spacing: .15em;
+}
+
+.lock-bottom {
+    margin-top: auto;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px 26px;
+}
+
+.round-control {
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, .5);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .2);
+    color: #fff;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    display: grid;
+    place-items: center;
+    font-size: 21px;
+}
+
+.swipe-hint {
+    bottom: 48px;
+    color: rgba(255, 255, 255, .9);
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-shadow: 0 1px 8px rgba(40, 20, 35, .35);
+}
+<!-- 自定义开屏壁纸设置面板 -->
+<section class="photo-setup" id="wallpaperSetup"
+         aria-label="开屏壁纸设置">
+
+  <div class="setup-top">
+    <div class="setup-title">My Wallpaper.</div>
+    <button class="back-btn" id="closeWallpaperSetup"
+            type="button" aria-label="关闭">×</button>
+  </div>
+
+  <div class="setup-sub">
+    选择你喜欢的图片，作为手机的开屏壁纸。
+    图片会尝试保存在当前浏览器中。
+  </div>
+
+  <div class="upload-card">
+    <div class="upload-preview" id="wallpaperPreview"
+         style="height:220px">
+      🌷
+    </div>
+
+    <label class="upload-btn">
+      ＋ 从相册选择壁纸
+      <input type="file" id="wallpaperFile" accept="image/*">
+    </label>
+  </div>
+
+  <div style="margin-top:15px">
+    <div class="upload-name">壁纸显示方式</div>
+    <select id="wallpaperFit"
+            style="width:100%;padding:12px;border:1px solid #dedbe1;border-radius:12px;background:white;color:#333">
+      <option value="cover">铺满屏幕</option>
+      <option value="contain">完整显示图片</option>
+    </select>
+  </div>
+
+  <div class="setup-actions">
+    <button class="setup-close" id="resetWallpaper"
+            type="button">恢复默认</button>
+    <button class="setup-save" id="saveWallpaper"
+            type="button">保存壁纸</button>
+  </div>
+
+  <div id="wallpaperMessage"
+       style="margin-top:12px;font-size:11px;line-height:1.6;color:#777986"
+       aria-live="polite">
+    请选择一张图片。
+  </div>
+
+</section>
+
+<!-- 壁纸设置入口 -->
+<button class="photo-entry"
+        id="wallpaperEntry"
+        type="button"
+        style="top:88px">
+  ♡ WALLPAPER
+</button>
+/* ===== 自定义开屏壁纸功能：第3段 ===== */
+
+(function () {
+    const wallpaper = document.querySelector(".wallpaper");
+    const panel = document.getElementById("wallpaperSetup");
+    const entry = document.getElementById("wallpaperEntry");
+    const closeBtn = document.getElementById("closeWallpaperSetup");
+    const fileInput = document.getElementById("wallpaperFile");
+    const preview = document.getElementById("wallpaperPreview");
+    const fitSelect = document.getElementById("wallpaperFit");
+    const saveBtn = document.getElementById("saveWallpaper");
+    const resetBtn = document.getElementById("resetWallpaper");
+    const message = document.getElementById("wallpaperMessage");
+
+    if (
+        !wallpaper || !panel || !entry || !closeBtn ||
+        !fileInput || !preview || !fitSelect ||
+        !saveBtn || !resetBtn || !message
+    ) {
+        console.error("壁纸设置组件不完整，请检查第2段代码。");
+        return;
+    }
+
+    const STORAGE_KEY = "chrysalism-lock-wallpaper-v1";
+    const FIT_KEY = "chrysalism-lock-wallpaper-fit-v1";
+
+    let pendingImage = null;
+
+    function showMessage(text) {
+        message.textContent = text;
+    }
+
+    function openPanel() {
+        panel.classList.add("open");
+    }
+
+    function closePanel() {
+        panel.classList.remove("open");
+    }
+
+    function applyWallpaper(data, fit) {
+        if (data) {
+            wallpaper.style.background =
+                'url("' + data + '") center / ' +
+                (fit || "cover") + " no-repeat";
+        }
+    }
+
+    function restoreSavedWallpaper() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const fit = localStorage.getItem(FIT_KEY) || "cover";
+
+            fitSelect.value = fit;
+
+            if (saved) {
+                applyWallpaper(saved, fit);
+
+                preview.innerHTML = "";
+                const img = document.createElement("img");
+                img.src = saved;
+                img.alt = "当前开屏壁纸";
+                preview.appendChild(img);
+
+                showMessage("已载入上次保存的壁纸。");
+            }
+        } catch (error) {
+            showMessage("无法读取已保存的壁纸，请重新选择。");
+        }
+    }
+
+    function updatePreview(data) {
+        preview.innerHTML = "";
+
+        const img = document.createElement("img");
+        img.src = data;
+        img.alt = "壁纸预览";
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = fitSelect.value;
+
+        preview.appendChild(img);
+    }
+
+    entry.addEventListener("click", openPanel);
+    closeBtn.addEventListener("click", closePanel);
+
+    fileInput.addEventListener("change", function () {
+        const file = fileInput.files && fileInput.files[0];
+
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            showMessage("请选择图片文件。");
+            return;
+        }
+
+        if (file.size > 20 * 1024 * 1024) {
+            showMessage("图片超过20MB，请选择较小的图片。");
+            fileInput.value = "";
+            return;
+        }
+
+        showMessage("正在读取图片……");
+
+        const reader = new FileReader();
+
+        reader.onload = function () {
+            const img = new Image();
+
+            img.onload = function () {
+                try {
+                    const maxSize = 1400;
+                    const scale = Math.min(
+                        1,
+                        maxSize / Math.max(img.width, img.height)
+                    );
+
+                    const canvas = document.createElement("canvas");
+                    canvas.width = Math.max(1, Math.round(img.width * scale));
+                    canvas.height = Math.max(1, Math.round(img.height * scale));
+
+                    const ctx = canvas.getContext("2d");
+
+                    if (!ctx) {
+                        showMessage("图片处理失败，请换一张图片。");
+                        return;
+                    }
+
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    pendingImage = canvas.toDataURL("image/jpeg", 0.82);
+
+                    updatePreview(pendingImage);
+                    showMessage("预览成功！点击「保存壁纸」即可应用。");
+                } catch (error) {
+                    showMessage("图片处理失败，请尝试 JPG 或 PNG 图片。");
+                }
+            };
+
+            img.onerror = function () {
+                showMessage("无法读取这张图片，请尝试其他图片。");
+            };
+
+            img.src = reader.result;
+        };
+
+        reader.onerror = function () {
+            showMessage("读取失败，请重新选择图片。");
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    fitSelect.addEventListener("change", function () {
+        const img = preview.querySelector("img");
+
+        if (img) {
+            img.style.objectFit = fitSelect.value;
+        }
+
+        if (pendingImage) {
+            applyWallpaper(pendingImage, fitSelect.value);
+        }
+    });
+
+    saveBtn.addEventListener("click", function () {
+        if (!pendingImage) {
+            showMessage("请先从相册选择一张图片。");
+            return;
+        }
+
+        try {
+            localStorage.setItem(STORAGE_KEY, pendingImage);
+            localStorage.setItem(FIT_KEY, fitSelect.value);
+
+            applyWallpaper(pendingImage, fitSelect.value);
+
+            showMessage("壁纸已保存！下次打开时会尝试恢复。");
+
+            if (typeof toast === "function") {
+                toast("开屏壁纸已保存 ♡");
+            }
+        } catch (error) {
+            showMessage(
+                "图片预览成功，但浏览器储存空间不足，无法保存。请换一张更小的图片。"
+            );
+        }
+    });
+
+    resetBtn.addEventListener("click", function () {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(FIT_KEY);
+
+            pendingImage = null;
+            fileInput.value = "";
+            fitSelect.value = "cover";
+
+            preview.innerHTML = "🌷";
+
+            /*
+             * 重新执行原来的主题函数，
+             * 恢复原始渐变壁纸。
+             */
+            originalApplyTheme();
+
+            showMessage("已恢复默认壁纸。");
+
+            if (typeof toast === "function") {
+                toast("已恢复默认壁纸 ♡");
+            }
+        } catch (error) {
+            showMessage("恢复失败，请重新打开页面再试。");
+        }
+    });
+
+    /*
+     * 保留原有主题切换功能。
+     * 切换角色时，如果存在自定义壁纸，
+     * 就再次应用已保存的壁纸。
+     */
+    const originalApplyTheme = applyTheme;
+
+    applyTheme = function () {
+        originalApplyTheme();
+
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const fit = localStorage.getItem(FIT_KEY) || "cover";
+
+            if (saved) {
+                applyWallpaper(saved, fit);
+            }
+        } catch (error) {
+            console.warn("无法恢复自定义壁纸。");
+        }
+    };
+
+    restoreSavedWallpaper();
+
+})();
+
